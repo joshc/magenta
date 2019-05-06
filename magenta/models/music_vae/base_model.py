@@ -257,6 +257,10 @@ class MusicVAE(object):
       kl_div = tf.zeros([batch_size, 1], dtype=tf.float32)
       z = None
 
+    # Tack on conditional variables
+    def _classify(input_sequence):
+        return tf.expand_dims(tf.math.reduce_mean(input_sequence, axis=[1, 2]), 1)
+    z = tf.concat([z, _classify(input_sequence)], axis=1)
     r_loss, metric_map = self.decoder.reconstruction_loss(
         x_input, x_target, x_length, z, control_sequence)[0:2]
 
