@@ -24,6 +24,9 @@ import configs
 import data
 import tensorflow as tf
 
+import pickle
+import numpy as np
+
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
@@ -121,6 +124,20 @@ def _get_input_tensors(dataset, config):
   iterator = dataset.make_one_shot_iterator()
   (input_sequence, output_sequence, control_sequence,
    sequence_length) = iterator.get_next()
+
+  # Load input condition
+  with tf.Session() as sess:
+    v = sess.run(input_sequence)
+    seq_to_fname = pickle.load(open("seq_to_fname.p", "rb"))
+    input_condition = np.zeros((batch_size, 1))
+    print('Batch size', batch_size)
+    for i in range(batch_size):
+      v_int = np.array(v[i]).astype(int)
+      fname = seq_to_fname[v_int.tobytes()]
+      def _classify(fname):
+        # TODO
+        return 1
+      input_condition[i] = _classify(fname)
   input_sequence.set_shape(
       [batch_size, None, config.data_converter.input_depth])
   output_sequence.set_shape(
@@ -136,7 +153,8 @@ def _get_input_tensors(dataset, config):
       'input_sequence': input_sequence,
       'output_sequence': output_sequence,
       'control_sequence': control_sequence,
-      'sequence_length': sequence_length
+      'sequence_length': sequence_length,
+      'input_condition': input_condition,
   }
 
 

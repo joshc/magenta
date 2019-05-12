@@ -29,7 +29,10 @@ from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import musicxml_reader
 from magenta.music import note_sequence_io
+from magenta.models.music_vae import data
 import tensorflow as tf
+import numpy as np
+import pickle
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -64,6 +67,8 @@ def convert_files(root_dir, sub_dir, writer, recursive=False):
   files_in_dir = tf.gfile.ListDirectory(os.path.join(dir_to_convert))
   recurse_sub_dirs = []
   written_count = 0
+
+  seq_to_fname = {}
   for file_in_dir in files_in_dir:
     tf.logging.log_every_n(tf.logging.INFO, '%d files converted.',
                            1000, written_count)
@@ -72,6 +77,18 @@ def convert_files(root_dir, sub_dir, writer, recursive=False):
         full_file_path.lower().endswith('.midi')):
       try:
         sequence = convert_midi(root_dir, sub_dir, full_file_path)
+        # Write filename for input conditions
+        # This needs to be the data converter for the model we are going to train
+        gc = data.GrooveConverter(
+          split_bars=4, steps_per_quarter=4, quarters_per_bar=4,
+          max_tensors_per_notesequence=20,
+          pitch_classes=data.ROLAND_DRUM_PITCH_CLASSES,
+          inference_pitch_classes=data.REDUCED_DRUM_PITCH_CLASSES)
+        tensors = gc.to_tensors(sequence).inputs
+        print('Length', len(tensors))
+        print('Shape', tensors[0].shape)
+        for tensor in tensors:
+          seq_to_fname[np.array(tensor).astype(int).tobytes()] = file_in_dir
       except Exception as exc:  # pylint: disable=broad-except
         tf.logging.fatal('%r generated an exception: %s', full_file_path, exc)
         continue
@@ -102,6 +119,8 @@ def convert_files(root_dir, sub_dir, writer, recursive=False):
         tf.logging.warning(
             'Unable to find a converter for file %s', full_file_path)
 
+  print("Dumping to seq_to_fname.p")
+  pickle.dump(seq_to_fname, open(f"seq_to_fname.p", "wb"))
   for recurse_sub_dir in recurse_sub_dirs:
     convert_files(root_dir, recurse_sub_dir, writer, recursive)
 

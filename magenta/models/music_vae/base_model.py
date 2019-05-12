@@ -213,7 +213,8 @@ class MusicVAE(object):
     return ds.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
 
   def _compute_model_loss(
-      self, input_sequence, output_sequence, sequence_length, control_sequence):
+      self, input_sequence, output_sequence, sequence_length, control_sequence,
+      input_condition=None):
     """Builds a model with loss for train/eval."""
     hparams = self.hparams
     batch_size = hparams.batch_size
@@ -258,9 +259,9 @@ class MusicVAE(object):
       z = None
 
     # Tack on conditional variables
-    def _classify(input_sequence):
-        return tf.expand_dims(tf.math.reduce_mean(input_sequence, axis=[1, 2]), 1)
-    z = tf.concat([z, _classify(input_sequence)], axis=1)
+    if input_condition is not None:
+      z = tf.concat([z, input_condition], axis=1)
+
     r_loss, metric_map = self.decoder.reconstruction_loss(
         x_input, x_target, x_length, z, control_sequence)[0:2]
 
@@ -281,7 +282,8 @@ class MusicVAE(object):
     return metric_map, scalars_to_summarize
 
   def train(self, input_sequence, output_sequence, sequence_length,
-            control_sequence=None):
+            control_sequence=None,
+            input_condition=None):
     """Train on the given sequences, returning an optimizer.
 
     Args:
@@ -298,7 +300,8 @@ class MusicVAE(object):
     """
 
     _, scalars_to_summarize = self._compute_model_loss(
-        input_sequence, output_sequence, sequence_length, control_sequence)
+        input_sequence, output_sequence, sequence_length, control_sequence,
+        input_condition=input_condition)
 
     hparams = self.hparams
     lr = ((hparams.learning_rate - hparams.min_learning_rate) *
