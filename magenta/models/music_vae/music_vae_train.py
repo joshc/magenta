@@ -90,6 +90,9 @@ flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
+flags.DEFINE_string(
+    'seq_to_fname_path', None,
+    'Path to a pickle file of a mapping from sequence to filename.')
 
 
 # Should not be called from within the graph to avoid redundant summaries.
@@ -128,7 +131,7 @@ def _get_input_tensors(dataset, config):
   # Load input condition
   with tf.Session() as sess:
     v = sess.run(input_sequence)
-    seq_to_fname = pickle.load(open("seq_to_fname.p", "rb"))
+    seq_to_fname = pickle.load(open(FLAGS.seq_to_fname_path, "rb"))
     input_condition = np.zeros((batch_size, 1))
     print('Batch size', batch_size)
     for i in range(batch_size):
