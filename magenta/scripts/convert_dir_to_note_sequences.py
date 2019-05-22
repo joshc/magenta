@@ -88,7 +88,7 @@ def convert_files(root_dir, sub_dir, writer, recursive=False):
         print('Length', len(tensors))
         print('Shape', tensors[0].shape)
         for tensor in tensors:
-          seq_to_fname[np.array(tensor).astype(int).tobytes()] = file_in_dir
+          seq_to_fname[np.array(tensor).astype(int).tobytes()] = dir_to_convert.split('/')[-1]
       except Exception as exc:  # pylint: disable=broad-except
         tf.logging.fatal('%r generated an exception: %s', full_file_path, exc)
         continue

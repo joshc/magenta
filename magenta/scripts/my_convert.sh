@@ -1,4 +1,4 @@
-INPUT_DIRECTORY=test_data
+INPUT_DIRECTORY=A
 
 # TFRecord file that will contain NoteSequence protocol buffers.
 SEQUENCES_TFRECORD=mynotesequences.tfrecord
