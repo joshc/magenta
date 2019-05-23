@@ -48,6 +48,7 @@ tf.app.flags.DEFINE_string('log', 'INFO',
                            'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
+seq_to_fname = {}
 def convert_files(root_dir, sub_dir, writer, recursive=False):
   """Converts files.
 
@@ -68,7 +69,7 @@ def convert_files(root_dir, sub_dir, writer, recursive=False):
   recurse_sub_dirs = []
   written_count = 0
 
-  seq_to_fname = {}
+  global seq_to_fname
   for file_in_dir in files_in_dir:
     tf.logging.log_every_n(tf.logging.INFO, '%d files converted.',
                            1000, written_count)
@@ -79,16 +80,19 @@ def convert_files(root_dir, sub_dir, writer, recursive=False):
         sequence = convert_midi(root_dir, sub_dir, full_file_path)
         # Write filename for input conditions
         # This needs to be the data converter for the model we are going to train
-        gc = data.GrooveConverter(
-          split_bars=4, steps_per_quarter=4, quarters_per_bar=4,
-          max_tensors_per_notesequence=20,
-          pitch_classes=data.ROLAND_DRUM_PITCH_CLASSES,
-          inference_pitch_classes=data.REDUCED_DRUM_PITCH_CLASSES)
+        # cat-mel_2bar_big
+        gc = data.OneHotMelodyConverter(
+        valid_programs=data.MEL_PROGRAMS,
+        skip_polyphony=False,
+        max_bars=100,  # Truncate long melodies before slicing.
+        slice_bars=2,
+        steps_per_quarter=4)
         tensors = gc.to_tensors(sequence).inputs
-        print('Length', len(tensors))
-        print('Shape', tensors[0].shape)
+        #print('Length', len(tensors))
+        #print('Shape', tensors[0].shape)
         for tensor in tensors:
-          seq_to_fname[np.array(tensor).astype(int).tobytes()] = dir_to_convert.split('/')[-1]
+          btensor = np.array(tensor).astype(int).tobytes()
+          seq_to_fname[btensor] = dir_to_convert.split('/')[-1]
       except Exception as exc:  # pylint: disable=broad-except
         tf.logging.fatal('%r generated an exception: %s', full_file_path, exc)
         continue
@@ -119,8 +123,6 @@ def convert_files(root_dir, sub_dir, writer, recursive=False):
         tf.logging.warning(
             'Unable to find a converter for file %s', full_file_path)
 
-  print("Dumping to seq_to_fname.p")
-  pickle.dump(seq_to_fname, open(f"seq_to_fname.p", "wb"))
   for recurse_sub_dir in recurse_sub_dirs:
     convert_files(root_dir, recurse_sub_dir, writer, recursive)
 
@@ -253,7 +255,9 @@ def main(unused_argv):
     tf.gfile.MakeDirs(output_dir)
 
   convert_directory(input_dir, output_file, FLAGS.recursive)
-
+  print("Dumping to seq_to_fname.p")
+  with open(f"seq_to_fname.p", "wb") as ff:
+      pickle.dump(seq_to_fname, ff)
 
 def console_entry_point():
   tf.app.run(main)

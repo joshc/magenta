@@ -1,7 +1,7 @@
-INPUT_DIRECTORY=A
+INPUT_DIRECTORY=~/CVAE/test
 
 # TFRecord file that will contain NoteSequence protocol buffers.
-SEQUENCES_TFRECORD=mynotesequences.tfrecord
+SEQUENCES_TFRECORD=~/CVAE/mynotesequences.tfrecord
 
 python convert_dir_to_note_sequences.py \
   --input_dir=$INPUT_DIRECTORY \
