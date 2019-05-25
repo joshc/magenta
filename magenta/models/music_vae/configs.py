@@ -24,7 +24,7 @@ from magenta.common import merge_hparams
 from magenta.models.music_vae import data
 from magenta.models.music_vae import data_hierarchical
 from magenta.models.music_vae import lstm_models
-from base_model import MusicVAE
+from magenta.models.music_vae.base_model import MusicVAE
 import magenta.music as mm
 from tensorflow.contrib.training import HParams
 

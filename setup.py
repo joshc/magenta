@@ -26,11 +26,15 @@ from setuptools import setup
 with open('magenta/version.py') as in_file:
   exec(in_file.read())  # pylint: disable=exec-used
 
-if '--gpu' in sys.argv:
-  gpu_mode = True
-  sys.argv.remove('--gpu')
-else:
-  gpu_mode = False
+print('sys.argv is: ' + str(sys.argv))
+
+# Force GPU
+# if '--gpu' in sys.argv:
+#   gpu_mode = True
+#   sys.argv.remove('--gpu')
+# else:
+#   gpu_mode = False
+gpu_mode = True
 
 REQUIRED_PACKAGES = [
     'IPython',
@@ -63,7 +67,8 @@ REQUIRED_PACKAGES = [
 ]
 
 if gpu_mode:
-  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.12.0')
+  # We only have the CUDA drivers for tensorflow-gpu 1.12
+  REQUIRED_PACKAGES.append('tensorflow-gpu == 1.12.0')
 else:
   REQUIRED_PACKAGES.append('tensorflow >= 1.12.0')
 

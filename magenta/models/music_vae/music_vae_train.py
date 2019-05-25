@@ -20,8 +20,8 @@ from __future__ import print_function
 
 import os
 
-import configs
-import data
+from magenta.models.music_vae import configs
+from magenta.models.music_vae import data
 import tensorflow as tf
 
 import pickle
