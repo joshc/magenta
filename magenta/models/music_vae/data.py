@@ -151,7 +151,7 @@ class NoteSequenceAugmenter(object):
       augmented_ns = self.augment(note_sequence)
       return [augmented_ns.SerializeToString()]
 
-    augmented_note_sequence_scalar = tf.py_func(
+    augmented_note_sequence_scalar = tf.contrib.eager.py_func(
         _augment_str,
         inp=[note_sequence_scalar],
         Tout=tf.string,
@@ -381,7 +381,7 @@ class BaseConverter(object):
       controls = _maybe_pad_seqs(
           tensors.controls, self.control_dtype, self.control_depth)
       return inputs, outputs, controls, np.array(tensors.lengths, np.int32)
-    inputs, outputs, controls, lengths = tf.py_func(
+    inputs, outputs, controls, lengths = tf.contrib.eager.py_func(
         _convert_and_pad,
         inp=[item_scalar],
         Tout=[
@@ -1229,7 +1229,7 @@ def get_dataset(
         split=tfds.Split.TRAIN if is_training else tfds.Split.VALIDATION,
         try_gcs=True)
     def _tf_midi_to_note_sequence(ex):
-      return tf.py_func(
+      return tf.contrib.eager.py_func(
           lambda x: [mm.midi_to_note_sequence(x.numpy()).SerializeToString()],
           inp=[ex['midi']],
           Tout=tf.string,
