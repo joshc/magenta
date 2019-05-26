@@ -131,16 +131,22 @@ def _get_input_tensors(dataset, config):
   # Load input condition
   with tf.Session() as sess:
     v = sess.run(input_sequence)
-    seq_to_fname = pickle.load(open(FLAGS.seq_to_fname_path, "rb"))
+    global seq_to_fname
+    # TODO dimension size
     input_condition = np.zeros((batch_size, 1))
     print('Batch size', batch_size)
     for i in range(batch_size):
-      v_int = np.array(v[i]).astype(int)
-      fname = seq_to_fname[v_int.tobytes()]
-      def _classify(fname):
-        # TODO
-        return 1
-      input_condition[i] = _classify(fname)
+      try:
+        v_int = np.array(v[i]).astype(int)
+        fname = seq_to_fname[v_int.tobytes()]
+        def _classify(fname):
+          # TODO
+          return 1
+        input_condition[i] = _classify(fname)
+        tf.logging.info('seq_to_fname found key!')
+      except KeyError:
+        input_condition[i] = 0
+        tf.logging.error('seq_to_fname KeyError!')
   input_sequence.set_shape(
       [batch_size, None, config.data_converter.input_depth])
   output_sequence.set_shape(
@@ -351,8 +357,10 @@ def run(config_map,
         num_batches=num_batches,
         master=FLAGS.master)
 
-
+seq_to_fname = {}
 def main(unused_argv):
+  global seq_to_fname
+  seq_to_fname = pickle.load(open(FLAGS.seq_to_fname_path, "rb"))
   tf.logging.set_verbosity(FLAGS.log)
   run(configs.CONFIG_MAP)
 
