@@ -93,6 +93,9 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'seq_to_fname_path', None,
     'Path to a pickle file of a mapping from sequence to filename.')
+flags.DEFINE_string(
+    'genre_dict_path', None,
+    'Path to a pickle file of a mapping from filename to genre (one-hot).')
 
 
 # Should not be called from within the graph to avoid redundant summaries.
@@ -132,8 +135,10 @@ def _get_input_tensors(dataset, config):
   with tf.Session() as sess:
     v = sess.run(input_sequence)
     global seq_to_fname
+    global genre_dict
     # TODO dimension size
-    input_condition = np.zeros((batch_size, 1))
+    context_dim = 15
+    input_condition = np.zeros((batch_size, context_dim))
     print('Batch size', batch_size)
     for i in range(batch_size):
       try:
@@ -141,11 +146,11 @@ def _get_input_tensors(dataset, config):
         fname = seq_to_fname[v_int.tobytes()]
         def _classify(fname):
           # TODO
-          return 1
+          return genre_dict[fname]
         input_condition[i] = _classify(fname)
         tf.logging.info('seq_to_fname found key!')
       except KeyError:
-        input_condition[i] = 0
+        input_condition[i] = [0] * context_dim
         tf.logging.error('seq_to_fname KeyError!')
   input_sequence.set_shape(
       [batch_size, None, config.data_converter.input_depth])
@@ -358,9 +363,12 @@ def run(config_map,
         master=FLAGS.master)
 
 seq_to_fname = {}
+genre_dict = {}
 def main(unused_argv):
   global seq_to_fname
+  global genre_dict
   seq_to_fname = pickle.load(open(FLAGS.seq_to_fname_path, "rb"))
+  genre_dict = pickle.load(open(FLAGS.genre_dict_path, "rb"))
   tf.logging.set_verbosity(FLAGS.log)
   run(configs.CONFIG_MAP)
 
