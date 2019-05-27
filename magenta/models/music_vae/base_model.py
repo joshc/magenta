@@ -344,14 +344,13 @@ class MusicVAE(object):
 
     return metrics_to_updates.values()
 
-  def sample(self, n, max_length=None, z=None, c_input=None, input_condition=None,
+  def sample(self, n, max_length=None, z=None, c_input=None, context=None,
     **kwargs):
     """Sample with an optional conditional embedding `z`."""
     if z is not None and z.shape[0].value != n:
       raise ValueError(
           '`z` must have a first dimension that equals `n` when given. '
           'Got: %d vs %d' % (z.shape[0].value, n))
-    print('asdfasdfasdfasdf', input_condition)
 
     if self.hparams.z_size and z is None:
       tf.logging.warning(
@@ -361,7 +360,8 @@ class MusicVAE(object):
           loc=tf.zeros(normal_shape), scale=tf.ones(normal_shape))
       z = normal_dist.sample()
 
-    z = tf.concat([z, input_condition], axis=1)
+    if context is not None:
+      z = tf.concat([z, context], axis=1)
 
     return self.decoder.sample(n, max_length, z, c_input, **kwargs)
 

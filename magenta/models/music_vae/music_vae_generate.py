@@ -71,6 +71,9 @@ flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
+flags.DEFINE_string(
+    'context', None,
+    'An array for the context.')
 
 
 def _slerp(p0, p1, t):
@@ -153,9 +156,12 @@ def run(config_map):
         os.path.join(FLAGS.run_dir, 'train'))
   else:
     checkpoint_dir_or_path = os.path.expanduser(FLAGS.checkpoint_file)
+  context = np.array(list(eval(FLAGS.context)))
   model = TrainedModel(
       config, batch_size=min(FLAGS.max_batch_size, FLAGS.num_outputs),
-      checkpoint_dir_or_path=checkpoint_dir_or_path)
+      checkpoint_dir_or_path=checkpoint_dir_or_path,
+      context_dim=len(context))
+
 
   if FLAGS.mode == 'interpolate':
     logging.info('Interpolating...')
@@ -168,16 +174,15 @@ def run(config_map):
         temperature=FLAGS.temperature)
   elif FLAGS.mode == 'sample':
     logging.info('Sampling...')
-    z_size=512
-    same_z_value = np.random.randn(FLAGS.num_outputs, z_size).astype(np.float32)
-    input_context = np.zeros((FLAGS.num_outputs, 1))
-    same_z_value = np.concatenate((same_z_value, input_context), axis=1)
+    context = np.array(list(eval(FLAGS.context)))
+    assert len(context.shape) == 1
 
+    batch_context = np.repeat(np.expand_dims(context, 0), FLAGS.num_outputs, axis=0)
     results = model.sample(
         n=FLAGS.num_outputs,
         length=config.hparams.max_seq_len,
         temperature=FLAGS.temperature,
-        same_z_value=same_z_value)
+        context=batch_context)
 
   basename = os.path.join(
       FLAGS.output_dir,

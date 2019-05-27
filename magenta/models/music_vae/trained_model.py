@@ -54,7 +54,8 @@ class TrainedModel(object):
   """
 
   def __init__(self, config, batch_size, checkpoint_dir_or_path=None,
-               var_name_substitutions=None, session_target='', **sample_kwargs):
+               var_name_substitutions=None, context_dim=None,
+               session_target='', **sample_kwargs):
     if tf.gfile.IsDirectory(checkpoint_dir_or_path):
       checkpoint_path = tf.train.latest_checkpoint(checkpoint_dir_or_path)
     else:
@@ -83,6 +84,9 @@ class TrainedModel(object):
       else:
         self._c_input = None
 
+      if context_dim is not None:
+        self._context = tf.placeholder(tf.float32, shape=[batch_size, context_dim])
+
       self._inputs = tf.placeholder(
           tf.float32,
           shape=[batch_size, None, self._config.data_converter.input_depth])
@@ -100,7 +104,7 @@ class TrainedModel(object):
           z=self._z_input,
           c_input=self._c_input,
           temperature=self._temperature,
-          input_condition=np.zeros((batch_size, 1)),
+          context=self._context,
           **sample_kwargs)
       if self._config.hparams.z_size:
         q_z = model.encode(self._inputs, self._inputs_length, self._controls)
@@ -138,9 +142,8 @@ class TrainedModel(object):
         saver.restore(self._sess, checkpoint_path)
 
   def sample(self, n=None, length=None, temperature=1.0, same_z=False,
-             same_z_value=None,
-             c_input=None):
-    
+             c_input=None, context=None):
+
     """Generates random samples from the model.
     Args:
       n: The number of samples to return. A full batch will be returned if not
@@ -161,8 +164,6 @@ class TrainedModel(object):
     batch_size = self._config.hparams.batch_size
     n = n or batch_size
     z_size = self._config.hparams.z_size
-    
-    print('z_size', z_size)
 
     if not length and self._config.data_converter.end_token is None:
       raise ValueError(
@@ -175,12 +176,15 @@ class TrainedModel(object):
     }
 
     if self._z_input is not None and same_z:
-      z = same_z_value
+      z = np.random.randn(z_size).astype(np.float32)
       z = np.tile(z, (batch_size, 1))
       feed_dict[self._z_input] = z
 
     if self._c_input is not None:
       feed_dict[self._c_input] = c_input
+
+    if self._context is not None:
+      feed_dict[self._context] = context
 
     outputs = []
     for _ in range(int(np.ceil(n / batch_size))):
