@@ -550,6 +550,10 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
         presplit_on_time_changes=presplit_on_time_changes,
         max_tensors_per_notesequence=max_tensors_per_notesequence)
 
+  @property
+  def encoder_decoder(self):
+    return self._legacy_encoder_decoder
+
   def _to_tensors(self, note_sequence):
     """Converts NoteSequence to unique, one-hot tensor sequences."""
     try:
