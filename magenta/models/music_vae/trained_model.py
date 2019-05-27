@@ -100,6 +100,7 @@ class TrainedModel(object):
           z=self._z_input,
           c_input=self._c_input,
           temperature=self._temperature,
+          input_condition=np.zeros((batch_size, 1)),
           **sample_kwargs)
       if self._config.hparams.z_size:
         q_z = model.encode(self._inputs, self._inputs_length, self._controls)
@@ -137,9 +138,10 @@ class TrainedModel(object):
         saver.restore(self._sess, checkpoint_path)
 
   def sample(self, n=None, length=None, temperature=1.0, same_z=False,
+             same_z_value=None,
              c_input=None):
+    
     """Generates random samples from the model.
-
     Args:
       n: The number of samples to return. A full batch will be returned if not
         specified.
@@ -159,6 +161,8 @@ class TrainedModel(object):
     batch_size = self._config.hparams.batch_size
     n = n or batch_size
     z_size = self._config.hparams.z_size
+    
+    print('z_size', z_size)
 
     if not length and self._config.data_converter.end_token is None:
       raise ValueError(
@@ -171,7 +175,7 @@ class TrainedModel(object):
     }
 
     if self._z_input is not None and same_z:
-      z = np.random.randn(z_size).astype(np.float32)
+      z = same_z_value
       z = np.tile(z, (batch_size, 1))
       feed_dict[self._z_input] = z
 

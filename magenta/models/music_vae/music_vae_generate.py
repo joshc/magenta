@@ -25,8 +25,10 @@ import sys
 import time
 
 from magenta import music as mm
-from magenta.models.music_vae import configs
-from magenta.models.music_vae import TrainedModel
+#from magenta.models.music_vae import configs
+import configs
+#from magenta.models.music_vae import TrainedModel
+from trained_model import TrainedModel
 import numpy as np
 import tensorflow as tf
 
@@ -166,10 +168,16 @@ def run(config_map):
         temperature=FLAGS.temperature)
   elif FLAGS.mode == 'sample':
     logging.info('Sampling...')
+    z_size=512
+    same_z_value = np.random.randn(FLAGS.num_outputs, z_size).astype(np.float32)
+    input_context = np.zeros((FLAGS.num_outputs, 1))
+    same_z_value = np.concatenate((same_z_value, input_context), axis=1)
+
     results = model.sample(
         n=FLAGS.num_outputs,
         length=config.hparams.max_seq_len,
-        temperature=FLAGS.temperature)
+        temperature=FLAGS.temperature,
+        same_z_value=same_z_value)
 
   basename = os.path.join(
       FLAGS.output_dir,
