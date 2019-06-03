@@ -184,7 +184,7 @@ def run(config_map):
     _, mu, _ = model.encode([input_t])
     # Load context
     context = np.zeros(CONTEXT_DIM)
-    context = context[FLAGS.context] = 1
+    context[FLAGS.context] = 1
     assert len(context.shape) == 1
     batch_context = np.repeat(np.expand_dims(context, 0), FLAGS.num_outputs, axis=0)
     results = model.sample(
