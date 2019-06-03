@@ -71,13 +71,14 @@ flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
-flags.DEFINE_string(
-    'context', None,
-    'An array for the context.')
+flags.DEFINE_integer(
+    'context', 0,
+    'An index for the context.')
 flags.DEFINE_string(
     'input_translate', None,
     'Path of MIDI file for translation.')
 
+CONTEXT_DIM = 15
 
 def _slerp(p0, p1, t):
   """Spherical linear interpolation."""
@@ -158,11 +159,10 @@ def run(config_map):
         os.path.join(FLAGS.run_dir, 'train'))
   else:
     checkpoint_dir_or_path = os.path.expanduser(FLAGS.checkpoint_file)
-  context = np.array(list(eval(FLAGS.context)))
   model = TrainedModel(
       config, batch_size=min(FLAGS.max_batch_size, FLAGS.num_outputs),
       checkpoint_dir_or_path=checkpoint_dir_or_path,
-      context_dim=len(context))
+      context_dim=CONTEXT_DIM)
 
 
   if FLAGS.mode == 'interpolate':
@@ -183,7 +183,8 @@ def run(config_map):
     _check_extract_examples(input_t, FLAGS.input_translate, 1)
     _, mu, _ = model.encode([input_t])
     # Load context
-    context = np.array(list(eval(FLAGS.context)))
+    context = np.zeros(CONTEXT_DIM)
+    context = context[FLAGS.context] = 1
     assert len(context.shape) == 1
     batch_context = np.repeat(np.expand_dims(context, 0), FLAGS.num_outputs, axis=0)
     results = model.sample(
