@@ -182,13 +182,13 @@ def run(config_map):
     input_t = mm.midi_file_to_note_sequence(input_translate)
     _check_extract_examples(input_t, FLAGS.input_translate, 1)
     _, mu, _ = model.encode([input_t])
-    z = np.repeat(mu, FLAGS.num_outputs, axis=0)
     # Load context
     context = np.array(list(eval(FLAGS.context)))
     assert len(context.shape) == 1
     batch_context = np.repeat(np.expand_dims(context, 0), FLAGS.num_outputs, axis=0)
     results = model.sample(
-        z=z,
+        z=mu,
+        same_z=True,
         n=FLAGS.num_outputs,
         length=config.hparams.max_seq_len,
         temperature=FLAGS.temperature,

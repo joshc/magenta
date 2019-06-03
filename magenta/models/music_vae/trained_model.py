@@ -141,7 +141,7 @@ class TrainedModel(object):
       else:
         saver.restore(self._sess, checkpoint_path)
 
-  def sample(self, n=None, length=None, temperature=1.0, same_z=False,
+  def sample(self, n=None, length=None, temperature=1.0, same_z=False,, z=None
              c_input=None, context=None):
 
     """Generates random samples from the model.
@@ -176,7 +176,6 @@ class TrainedModel(object):
     }
 
     if self._z_input is not None and same_z:
-      z = np.random.randn(z_size).astype(np.float32)
       z = np.tile(z, (batch_size, 1))
       feed_dict[self._z_input] = z
 
