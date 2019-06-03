@@ -25,10 +25,10 @@ import sys
 import time
 
 from magenta import music as mm
-#from magenta.models.music_vae import configs
-import configs
-#from magenta.models.music_vae import TrainedModel
-from trained_model import TrainedModel
+from magenta.models.music_vae import configs
+#import configs
+from magenta.models.music_vae import TrainedModel
+#from trained_model import TrainedModel
 import numpy as np
 import tensorflow as tf
 
@@ -74,6 +74,9 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'context', None,
     'An array for the context.')
+flags.DEFINE_string(
+    'input_translate', None,
+    'Path of MIDI file for translation.')
 
 
 def _slerp(p0, p1, t):
@@ -83,7 +86,6 @@ def _slerp(p0, p1, t):
              np.squeeze(p1/np.linalg.norm(p1))))
   so = np.sin(omega)
   return np.sin((1.0-t)*omega) / so * p0 + np.sin(t*omega)/so * p1
-
 
 def run(config_map):
   """Load model params, save config file and start trainer.
@@ -109,22 +111,8 @@ def run(config_map):
     raise ValueError('Invalid config name: %s' % FLAGS.config)
   config = config_map[FLAGS.config]
   config.data_converter.max_tensors_per_item = None
-
-  if FLAGS.mode == 'interpolate':
-    if FLAGS.input_midi_1 is None or FLAGS.input_midi_2 is None:
-      raise ValueError(
-          '`--input_midi_1` and `--input_midi_2` must be specified in '
-          '`interpolate` mode.')
-    input_midi_1 = os.path.expanduser(FLAGS.input_midi_1)
-    input_midi_2 = os.path.expanduser(FLAGS.input_midi_2)
-    if not os.path.exists(input_midi_1):
-      raise ValueError('Input MIDI 1 not found: %s' % FLAGS.input_midi_1)
-    if not os.path.exists(input_midi_2):
-      raise ValueError('Input MIDI 2 not found: %s' % FLAGS.input_midi_2)
-    input_1 = mm.midi_file_to_note_sequence(input_midi_1)
-    input_2 = mm.midi_file_to_note_sequence(input_midi_2)
-
-    def _check_extract_examples(input_ns, path, input_number):
+  
+  def _check_extract_examples(input_ns, path, input_number):
       """Make sure each input returns exactly one example from the converter."""
       tensors = config.data_converter.to_tensors(input_ns).outputs
       if not tensors:
@@ -144,6 +132,20 @@ def run(config_map):
             'inputs as `%s`. Call script again with one of these instead.' %
             (len(tensors), path, basename))
         sys.exit()
+
+  if FLAGS.mode == 'interpolate':
+    if FLAGS.input_midi_1 is None or FLAGS.input_midi_2 is None:
+      raise ValueError(
+          '`--input_midi_1` and `--input_midi_2` must be specified in '
+          '`interpolate` mode.')
+    input_midi_1 = os.path.expanduser(FLAGS.input_midi_1)
+    input_midi_2 = os.path.expanduser(FLAGS.input_midi_2)
+    if not os.path.exists(input_midi_1):
+      raise ValueError('Input MIDI 1 not found: %s' % FLAGS.input_midi_1)
+    if not os.path.exists(input_midi_2):
+      raise ValueError('Input MIDI 2 not found: %s' % FLAGS.input_midi_2)
+    input_1 = mm.midi_file_to_note_sequence(input_midi_1)
+    input_2 = mm.midi_file_to_note_sequence(input_midi_2)
     logging.info(
         'Attempting to extract examples from input MIDIs using config `%s`...',
         FLAGS.config)
@@ -174,11 +176,19 @@ def run(config_map):
         temperature=FLAGS.temperature)
   elif FLAGS.mode == 'sample':
     logging.info('Sampling...')
+    input_translate = os.path.expanduser(FLAGS.input_translate)
+    if not os.path.exists(input_translate):
+      raise ValueError('Input transalte not found: %s' % FLAGS.input_translate)
+    input_t = mm.midi_file_to_note_sequence(input_translate)
+    _check_extract_examples(input_t, FLAGS.input_translate, 1)
+    _, mu, _ = model.encode([input_t])
+    z = np.repeat(mu, FLAGS.num_outputs, axis=0)
+    # Load context
     context = np.array(list(eval(FLAGS.context)))
     assert len(context.shape) == 1
-
     batch_context = np.repeat(np.expand_dims(context, 0), FLAGS.num_outputs, axis=0)
     results = model.sample(
+        z=z,
         n=FLAGS.num_outputs,
         length=config.hparams.max_seq_len,
         temperature=FLAGS.temperature,
