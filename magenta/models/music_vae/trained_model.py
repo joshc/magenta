@@ -141,7 +141,7 @@ class TrainedModel(object):
       else:
         saver.restore(self._sess, checkpoint_path)
 
-  def sample(self, n=None, length=None, temperature=1.0, same_z=False,, z=None
+  def sample(self, n=None, length=None, temperature=1.0, same_z=False, z=None,
              c_input=None, context=None):
 
     """Generates random samples from the model.
